@@ -1,0 +1,11 @@
+__pycache__/*
+.vscode/*
+
+*.txt
+
+# the file that holds the reddit username/pw
+configR.py 
+
+# ignore all csv files
+*.csv
+#except for these ones
