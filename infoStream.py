@@ -4,6 +4,7 @@ import time
 import praw
 import configR
 from praw.models import MoreComments
+import prawcore
 import datetime
 import traceback
 if sys.platform == "win32":
@@ -117,6 +118,8 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
                 title = post.title
                 title = title.replace(",", "")  # so there aren't any comma issues when reading the csv
                 title = title.replace("’", "")  # weird apostrophe
+                title = title.replace("\"", "")  # quote
+                title = title.replace("“", "")  # weird quote
 
                 # can assume post has not been seen before
                 date = post.created_utc
@@ -146,7 +149,8 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
 
                 nowtime = datetime.datetime.now()
                 # flush file buffers every 1 min
-                if nowtime > streamStartTime + datetime.timedelta(minutes=1):
+                if nowtime > lastFileFlush + datetime.timedelta(minutes=1):
+                    lastFileFlush = nowtime
                     err.flush()
                     if writeToFile:
                         outfile.flush()
@@ -164,6 +168,27 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
             if writeToFile:
                 outfile.flush()
             exit()
+        except prawcore.exceptions.NotFound:
+            exceptCount += 1
+            if not localIsUTC:
+                errTime = str(datetime.datetime.now().strftime("%x %X"))
+            else:
+                errTime = str((datetime.datetime.now() - datetime.timedelta(hours=7)).strftime("%x %X"))
+            print("Prawcore notfound ERROR CAUGHT. Check error log.")
+
+            err.write("Prawcore notfound ERROR CAUGHT at %s\n" % (str(errTime)))
+            err.write(traceback.format_exc())
+            err.write("\n")        
+
+            err.flush()
+            if writeToFile:
+                outfile.flush()
+
+            if exceptCount > 5:
+                # too many attempts
+                print("too may attempts; exiting")
+                err.write("too may attempts; exiting\n")
+                exit()                
         except:
             print("SOME ERROR :((")
             exceptCount += 1
@@ -198,9 +223,10 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
 writeToFile = True
 postToReddit = False
 
+# note for some reason a stream for popular breaks (might be too fast?)
 totaldays = 0
-hoursoffset = 2
-outfileName = "testrunStream.csv"
+hoursoffset = 0.5
+outfileName = "test.csv"
 
 print("writeToFile: %s\npostToReddit: %s\noutfilename: %s" % (str(writeToFile), str(postToReddit), outfileName))
 time.sleep(5)

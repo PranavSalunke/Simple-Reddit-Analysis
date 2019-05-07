@@ -124,6 +124,8 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                 title = post.title
                 title = title.replace(",", "")  # so there aren't any comma issues when reading the csv
                 title = title.replace("’", "")  # weird apostrophe
+                title = title.replace("\"", "")  # quote
+                title = title.replace("“", "")  # weird quote                
 
                 if postid not in seenids:
                     date = post.created_utc
@@ -208,6 +210,9 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                             title = post.title
                             title = title.replace(",", "")  # so there aren't any comma issues when reading the csv
                             title = title.replace("’", "")  # weird apostrophe
+                            title = title.replace("\"", "")  # quote
+                            title = title.replace("“", "")  # weird quote
+                                                        
                             postauth = str(post.author)
                             authkarma = str(post.author.link_karma + post.author.comment_karma)
                             # if not localIsUTC: #print out to console
@@ -293,9 +298,9 @@ writeToFile = True
 postToReddit = False
 
 totaldays = 0
-hoursoffset = 2
+hoursoffset = 0.5
 interval = 5  # min
-outfileName = "testruncsv"
+outfileName = "30min_popular_5minInt.csv"
 
 print("writeToFile: %s\npostToReddit: %s\noutfilename: %s" % (str(writeToFile), str(postToReddit), outfileName))
 time.sleep(5)
