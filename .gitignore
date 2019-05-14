@@ -6,6 +6,11 @@ __pycache__/*
 # the file that holds the reddit username/pw
 configR.py 
 
+# ignore sub folders meant for the 
+#  actual presentation
+presentationReady.zip
+presentationReady/* 
+
 # ignore all csv files
 *.csv
 #except for these ones
