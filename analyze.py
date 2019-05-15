@@ -98,13 +98,6 @@ def analyze(filename, field, showAllDates, plottingDate=True):
     
     fig, ax = plt.subplots()
 
-    ###### for just plotting the data with out counting
-    # ax.scatter(data[field],[1]*len(data[field]))
-    # plt.show()
-    # return
-    # exit()
-    ######
-
     if plottingDate:
         # matplotlib is verry slow for huge data sets
         # but i knwo how to show date
@@ -161,8 +154,8 @@ def analyze(filename, field, showAllDates, plottingDate=True):
 # filename = "data/askreddit_2day12hour_interval5min.csv" 
 # filename = "data/askreddit_2day12hour_stream.csv" 
 
-# filename = "data/Popular_2day12hour_interval5min.csv" 
-filename = "data/popular_short_stream2.csv" 
+filename = "data/Popular_2day12hour_interval5min.csv" 
+# filename = "data/popular_short_stream2.csv" 
 
 fields = ["Iteration Time (home)","Iteration Time (utc)","Post Time (utc)","Subreddit","Title","Author","Total Karma"]
 # not plotting postid since that is unique anyway
@@ -200,8 +193,10 @@ print("\nshowAllDates: %s" % (showAllDates))
 print("field: %s" % (field))
 print("plotting date: %s\n" % (str(plottingDate)))
 
-# loadPickledFig("pickledFigs/popular_short_stream2__Subreddit.pickle")
-# loadPickledFig("pickledFigs/askreddit_2day12hour_interval5min__Author.pickle")
+#load pickled figure (matplotlib)
+# pickedFigName = creeatePickledName("30min_popular_5minInt.csv", "Iteration Time (home)")
+# loadPickledFig(pickedFigName)
+
 
 # analyze(filename, field, showAllDates, plottingDate)
 for f in fields:

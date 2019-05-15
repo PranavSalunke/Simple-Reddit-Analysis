@@ -225,8 +225,8 @@ postToReddit = False
 
 # note for some reason a stream for popular breaks (might be too fast?)
 totaldays = 0
-hoursoffset = 0.5
-outfileName = "test.csv"
+hoursoffset = 0.1 # 6 min 
+outfileName = "data/classdemo.csv"
 
 print("writeToFile: %s\npostToReddit: %s\noutfilename: %s" % (str(writeToFile), str(postToReddit), outfileName))
 time.sleep(5)
