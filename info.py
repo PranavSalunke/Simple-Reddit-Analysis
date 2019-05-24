@@ -9,7 +9,7 @@ import traceback
 if sys.platform == "win32":
     import winsound
 
-# configR is a custom py file to import that holds sensitive info 
+# configR is a custom py file to import that holds sensitive info
 reddit = praw.Reddit(client_id=configR.client_id,
                      client_secret=configR.client_secret,
                      username=configR.username,
@@ -67,19 +67,42 @@ def numberiterations(totalhours, interval):
     return (int(round(totalmin / float(interval))), totalmin)
 
 
+def initBreakpointDict(subsOfInterest):
+    # takes list of subs, returns dict of the last id seen
+    # initializes as None
+    # this was done since I wanted to allow using more than one sub
+    #   When using just one, I could do with one variable to keep track
+    breakpointidDict = {}
+    for sub in subsOfInterest:
+        breakpointidDict[sub] = None
+    return breakpointidDict
+
+
+def cleanTitle(uncleanTitle):
+    cleanedTitle = uncleanTitle.replace(",", "")  # so there aren't any comma issues when reading the csv
+    cleanedTitle = cleanedTitle.replace("’", "")  # weird apostrophe
+    cleanedTitle = cleanedTitle.replace("“", "")  # weird quote
+    cleanedTitle = cleanedTitle.replace("”", "")  # weird quote
+    cleanedTitle = cleanedTitle.replace("\"", "")  # quote
+    return cleanedTitle
+
+
 def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
     errName = "info_error_log.txt"
     localIsUTC = localTimeIsUTC()
+    totalpostslookedat = 0
     # subsOfInterest = ["learnpython", "Python", "ucsc"]
     # subsOfInterest = ["learnpython"]
-    subsOfInterest = ["askreddit"]
+    # subsOfInterest = ["askreddit"]
+    subsOfInterest = ["askreddit", "aww", "showerthoughts"]
     # subsOfInterest = ["popular"]
     # subsOfInterest = ["ucsc"]
 
     with open(outfileName, "w") as outfile, open(errName, "a") as err:
         seenids = []
-        breakpointid = ""
-        postslookedat = 0
+        # breakpointid = ""
+        breakpointids = initBreakpointDict(subsOfInterest)
+        print(breakpointids)
 
         totalhours = (totaldays * 24.0) + hoursoffset
         iterations, totalmin = numberiterations(totalhours, interval)
@@ -114,30 +137,38 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
         if writeToFile:
             outfile.write("Iteration Time (home),Iteration Time (utc),Post Time (utc),Subreddit,Title, Postid ,Author,Total Karma\n")
         for sub in subsOfInterest:
+            breakpointid = breakpointids[sub]
+            print("%s: init start breakpoint: %s" % (sub, breakpointid))
             for post in reddit.subreddit(sub).new(limit=25):
                 # get the real sub name
                 #   if we use "all" or "popular" those arent 'real' subreddits
                 #   if we use a 'real' name like 'askreddit' it will be the same
                 realsub = post.subreddit.display_name.lower()  # this is the one that is put in the csv
                 postid = post.id
-                postslookedat = postslookedat + 1
-                title = post.title
-                title = title.replace(",", "")  # so there aren't any comma issues when reading the csv
-                title = title.replace("’", "")  # weird apostrophe
-                title = title.replace("\"", "")  # quote
-                title = title.replace("“", "")  # weird quote                
+                totalpostslookedat = totalpostslookedat + 1
+                title = cleanTitle(post.title)
+
+                if breakpointid == None:  # set breakpoint to first post
+                    print("    breakpoint set to %s" % (postid))
+                    breakpointid = postid
+                    breakpointids[sub] = postid
 
                 if postid not in seenids:
                     date = post.created_utc
                     minago = str(int(round(abs(date - time.time()) / 60)))
                     postauth = str(post.author)
-                    authkarma = str(post.author.link_karma + post.author.comment_karma)
+                    postauth = str(post.author)
+                    if not postauth == "None":  # since converted to string
+                        authkarma = str(post.author.link_karma + post.author.comment_karma)
+                    else:
+                        print("   NONE AUTHOR ON %s" % (postid))
+                        authkarma = "0"
 
                     t = "placeholder title for %s" % (str(postid))
                     try:
                         #t = title.encode("cp437", "backslashreplace") + "   [[ " + str(minago) + "m - " + post.id + " ]]"
                         t = title
-                        print(" " + str(t))
+                        # print(" " + str(t)) # print title to console
                     except UnicodeDecodeError:
                         t = "placeholder title;   UnicodeDecodeError on %s" % (str(postid))
                         print("  UnicodeDecodeError on " + str(postid))
@@ -172,20 +203,21 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                     # if sys.platform == "win32":
                     #     winsound.Beep(250, 250)
 
-                if breakpointid == "":
-                    breakpointid = postid
+                    # breakpointid = postid
+            print("    %s: init end breakpoint: %s" % (sub, breakpointids[sub]))
 
         postid = ""
         print("total hours: %d (%d min). interval (min): %d. iterations: %d" %
               (totalhours, totalmin, interval, iterations))
+
+        ### iterations ###
+
         for i in range(1, iterations + 1):
             err.flush()
             if writeToFile:
                 outfile.flush()
             try:
                 time.sleep(interval * 60)
-                first = None
-                postslookedat = 0
                 # get iteration time
                 if not localIsUTC:
                     hometime = str(datetime.datetime.now().strftime("%x %X"))
@@ -196,25 +228,39 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                     utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
 
                 for sub in subsOfInterest:
+                    postsinSubThisRun = 0
+                    breakpointSet = False
+                    breakpointid = breakpointids[sub]
+                    print("%s: start breakpoint: %s" % (sub, breakpointids[sub]))
+
                     for post in reddit.subreddit(sub).new(limit=250):
                         realsub = post.subreddit.display_name.lower()  # this is the one that is put in the csv
                         postid = post.id
-                        postslookedat = postslookedat + 1
-                        if first is None:
-                            first = postid
-
+                        totalpostslookedat = totalpostslookedat + 1
+                        postsinSubThisRun = postsinSubThisRun + 1
+                        # print("%s " % (postid), end="")
                         if postid == breakpointid:
+                            print("    new breakpoint: %s" % (breakpointids[sub]))
+                            print("       caught up to the posts we saw: %s after %d posts" % (postid, postsinSubThisRun))
                             break  # caught up to the posts we saw
 
+                        if not breakpointSet:  # set the first post seen as the break point
+                            breakpointids[sub] = postid
+                            print("    breakpoint set to %s" % (postid))
+                            # first = postid
+                            breakpointSet = True
+
                         if postid not in seenids:
-                            title = post.title
-                            title = title.replace(",", "")  # so there aren't any comma issues when reading the csv
-                            title = title.replace("’", "")  # weird apostrophe
-                            title = title.replace("\"", "")  # quote
-                            title = title.replace("“", "")  # weird quote
-                                                        
-                            postauth = str(post.author)
-                            authkarma = str(post.author.link_karma + post.author.comment_karma)
+                            seenids.append(postid)
+                            title = cleanTitle(post.title)
+
+                            postauth == str(post.author)
+                            if not postauth == "None":  # since converted to string
+                                authkarma = str(post.author.link_karma + post.author.comment_karma)
+                            else:
+                                winsound.Beep(3000, 100)
+                                print("   NONE AUTHOR ON %s" % (postid))
+                                authkarma = "0"
                             # if not localIsUTC: #print out to console
                             #     utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
                             #     localtime = str(datetime.datetime.now().strftime("%x %X"))
@@ -235,7 +281,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                             try:
                                 #t = title.encode("cp437", "backslashreplace")
                                 t = title
-                                print(" [[%s]] -- %s" % (realsub, t))
+                                # print(" [[%s]] -- %s" % (realsub, t))  # print to console
                             except UnicodeDecodeError:
                                 t = "placeholder title;   UnicodeDecodeError on %s" % (str(postid))
                                 print("  UnicodeDecodeError on " + str(postid))
@@ -266,11 +312,11 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                                 except UnicodeEncodeError:
                                     outfile.write(",%s,UnicodeEncodeError \n" % (postid))  # for posts with special characters
 
-                            seenids.append(postid)
                             # if sys.platform == "win32":
                             #     winsound.Beep(250, 250)
 
-                    breakpointid = first
+                    # breakpointid = first
+                    print("    %s: end breakpoint: %s" % (sub, breakpointids[sub]))
 
             except KeyboardInterrupt:
                 if not writeToFile:
@@ -298,9 +344,9 @@ writeToFile = True
 postToReddit = False
 
 totaldays = 0
-hoursoffset = 0.5
+hoursoffset = 1
 interval = 5  # min
-outfileName = "30min_popular_5minInt.csv"
+outfileName = "testingNewBreakpoint3.csv"
 
 print("writeToFile: %s\npostToReddit: %s\noutfilename: %s" % (str(writeToFile), str(postToReddit), outfileName))
 time.sleep(5)
