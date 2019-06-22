@@ -8,13 +8,13 @@ configR.py
 
 # ignore sub folders meant for the 
 #  actual presentation
-presentationReady.zip
 presentationReady/* 
+*.zip
 
 # ignore all csv files
 *.csv
 #except for these ones
 !data/*.csv
 
-#html file created by bokeh
-analyze.html
+#html files created by bokeh
+*.html
