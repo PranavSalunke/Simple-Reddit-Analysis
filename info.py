@@ -123,17 +123,6 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
             print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), str(utctime.strftime("%x %X")),
                                                               str(localtime.strftime("%x %X")), str(hometime.strftime("%x %X"))))
 
-        # if not localIsUTC:
-        #     utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
-        #     localtime = str(datetime.datetime.now().strftime("%x %X"))
-        #     hometime = str(datetime.datetime.now().strftime("%x %X"))
-        #     print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), utctime, localtime, hometime))
-        # else:
-        #     utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
-        #     localtime = str(datetime.datetime.now().strftime("%x %X"))
-        #     hometime = str((datetime.datetime.now() - datetime.timedelta(hours=7)).strftime("%x %X"))
-        #     print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), utctime, localtime, hometime))
-
         if writeToFile:
             outfile.write("Iteration Time (home),Iteration Time (utc),Post Time (utc),Subreddit,Title, Postid ,Author,Total Karma\n")
         for sub in subsOfInterest:
@@ -166,7 +155,6 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
 
                     t = "placeholder title for %s" % (str(postid))
                     try:
-                        #t = title.encode("cp437", "backslashreplace") + "   [[ " + str(minago) + "m - " + post.id + " ]]"
                         t = title
                         # print(" " + str(t)) # print title to console
                     except UnicodeDecodeError:
@@ -175,19 +163,6 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                     except:
                         t = "placeholder title;   Error on %s" % (str(postid))
                         print("  something went wrong on  " + str(postid))
-
-                    # if not localIsUTC:
-                    #     hometime = str(datetime.datetime.now().strftime("%x %X"))
-                    #     utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
-                    #     if writeToFile:
-                    #         outfile.write(hometime + "," + utctime + ",")
-                    #         # outfile.write(str(datetime.datetime.now()) + ",")
-                    # else:
-                    #     hometime = str((datetime.datetime.now() - datetime.timedelta(hours=7)).strftime("%x %X"))
-                    #     utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
-                    #     if writeToFile:
-                    #         outfile.write(hometime + "," + utctime + ",")
-                    #         # outfile.write(str(datetime.datetime.now() - datetime.timedelta(hours=8)) + ",")
 
                     if writeToFile:
                         try:
@@ -200,10 +175,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                             outfile.write(",%s,UnicodeEncodeError \n" % (postid))  # for posts with special characters
 
                     seenids.append(postid)
-                    # if sys.platform == "win32":
-                    #     winsound.Beep(250, 250)
 
-                    # breakpointid = postid
             print("    %s: init end breakpoint: %s" % (sub, breakpointids[sub]))
 
         postid = ""
@@ -238,7 +210,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                         postid = post.id
                         totalpostslookedat = totalpostslookedat + 1
                         postsinSubThisRun = postsinSubThisRun + 1
-                        # print("%s " % (postid), end="")
+
                         if postid == breakpointid:
                             print("    new breakpoint: %s" % (breakpointids[sub]))
                             print("       caught up to the posts we saw: %s after %d posts" % (postid, postsinSubThisRun))
@@ -247,7 +219,6 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                         if not breakpointSet:  # set the first post seen as the break point
                             breakpointids[sub] = postid
                             print("    breakpoint set to %s" % (postid))
-                            # first = postid
                             breakpointSet = True
 
                         if postid not in seenids:
@@ -258,28 +229,13 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                             if not postauth == "None":  # since converted to string
                                 authkarma = str(post.author.link_karma + post.author.comment_karma)
                             else:
-                                winsound.Beep(3000, 100)
                                 print("   NONE AUTHOR ON %s" % (postid))
                                 authkarma = "0"
-                            # if not localIsUTC: #print out to console
-                            #     utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
-                            #     localtime = str(datetime.datetime.now().strftime("%x %X"))
-                            #     hometime = str(datetime.datetime.now().strftime("%x %X"))
-                            #     print("%s - %s (utc) | %s (local) | %s (home)" %
-                            #           (str(i), utctime, localtime, hometime))
-                            # else:
-                            #     utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
-                            #     localtime = str(datetime.datetime.now().strftime("%x %X"))
-                            #     hometime = str((datetime.datetime.now() -
-                            #                     datetime.timedelta(hours=7)).strftime("%x %X"))
-                            #     print("%s - %s (utc) | %s (local) | %s (home)" %
-                            #           (str(i), utctime, localtime, hometime))
 
                             date = post.created_utc
                             minago = str(int(round(abs(date - time.time()) / 60)))
                             t = "placeholder title for %s" % (str(postid))
                             try:
-                                #t = title.encode("cp437", "backslashreplace")
                                 t = title
                                 # print(" [[%s]] -- %s" % (realsub, t))  # print to console
                             except UnicodeDecodeError:
@@ -288,19 +244,6 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                             except:
                                 t = "placeholder title;   Error on %s" % (str(postid))
                                 print("  something went wrong on  " + str(postid))
-                            # iteration time
-                            # if not localIsUTC:
-                            #     hometime = str(datetime.datetime.now().strftime("%x %X"))
-                            #     utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
-                            #     if writeToFile:
-                            #         outfile.write(hometime + "," + utctime + ",")
-                            #         # outfile.write(str(datetime.datetime.now()) + ",")
-                            # else:
-                            #     hometime = str((datetime.datetime.now() -
-                            #                     datetime.timedelta(hours=7)).strftime("%x %X"))
-                            #     utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
-                            #     if writeToFile:
-                            #         outfile.write(hometime + "," + utctime + ",")
 
                             if writeToFile:
                                 try:
@@ -312,10 +255,6 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                                 except UnicodeEncodeError:
                                     outfile.write(",%s,UnicodeEncodeError \n" % (postid))  # for posts with special characters
 
-                            # if sys.platform == "win32":
-                            #     winsound.Beep(250, 250)
-
-                    # breakpointid = first
                     print("    %s: end breakpoint: %s" % (sub, breakpointids[sub]))
 
             except KeyboardInterrupt:
