@@ -80,10 +80,18 @@ def initBreakpointDict(subsOfInterest):
 
 def cleanTitle(uncleanTitle):
     cleanedTitle = uncleanTitle.replace(",", "")  # so there aren't any comma issues when reading the csv
+    cleanedTitle = cleanedTitle.replace("\"", "")  # quote
+    # the weird characters are no longer needed now that I endcode/decode
+    #   but I'll leave it here since they are common characters
     cleanedTitle = cleanedTitle.replace("’", "")  # weird apostrophe
+    cleanedTitle = cleanedTitle.replace("‘", "")  # weird apostrophe
     cleanedTitle = cleanedTitle.replace("“", "")  # weird quote
     cleanedTitle = cleanedTitle.replace("”", "")  # weird quote
-    cleanedTitle = cleanedTitle.replace("\"", "")  # quote
+
+    # replace all the other non ascii stuff (emojis, etc)
+    cleanedTitle = cleanedTitle.encode("ascii", "namereplace")
+    cleanedTitle = cleanedTitle.decode("ascii")
+
     return cleanedTitle
 
 
@@ -92,17 +100,13 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
     localIsUTC = localTimeIsUTC()
     totalpostslookedat = 0
     # subsOfInterest = ["learnpython", "Python", "ucsc"]
-    # subsOfInterest = ["learnpython"]
-    # subsOfInterest = ["askreddit"]
     subsOfInterest = ["askreddit", "aww", "showerthoughts"]
-    # subsOfInterest = ["popular"]
-    # subsOfInterest = ["ucsc"]
 
     with open(outfileName, "w") as outfile, open(errName, "a") as err:
         seenids = []
         # breakpointid = ""
         breakpointids = initBreakpointDict(subsOfInterest)
-        print(breakpointids)
+        # print(breakpointids)
 
         totalhours = (totaldays * 24.0) + hoursoffset
         iterations, totalmin = numberiterations(totalhours, interval)
@@ -127,7 +131,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
             outfile.write("Iteration Time (home),Iteration Time (utc),Post Time (utc),Subreddit,Title, Postid ,Author,Total Karma\n")
         for sub in subsOfInterest:
             breakpointid = breakpointids[sub]
-            print("%s: init start breakpoint: %s" % (sub, breakpointid))
+            # print("%s: init start breakpoint: %s" % (sub, breakpointid))
             for post in reddit.subreddit(sub).new(limit=25):
                 # get the real sub name
                 #   if we use "all" or "popular" those arent 'real' subreddits
@@ -138,7 +142,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                 title = cleanTitle(post.title)
 
                 if breakpointid == None:  # set breakpoint to first post
-                    print("    breakpoint set to %s" % (postid))
+                    # print("    breakpoint set to %s" % (postid))
                     breakpointid = postid
                     breakpointids[sub] = postid
 
@@ -150,13 +154,13 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                     if not postauth == "None":  # since converted to string
                         authkarma = str(post.author.link_karma + post.author.comment_karma)
                     else:
-                        print("   NONE AUTHOR ON %s" % (postid))
+                        # print("   NONE AUTHOR ON %s" % (postid))
                         authkarma = "0"
 
                     t = "placeholder title for %s" % (str(postid))
                     try:
                         t = title
-                        # print(" " + str(t)) # print title to console
+                        print(" " + str(t))  # print title to console
                     except UnicodeDecodeError:
                         t = "placeholder title;   UnicodeDecodeError on %s" % (str(postid))
                         print("  UnicodeDecodeError on " + str(postid))
@@ -176,7 +180,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
 
                     seenids.append(postid)
 
-            print("    %s: init end breakpoint: %s" % (sub, breakpointids[sub]))
+            # print("    %s: init end breakpoint: %s" % (sub, breakpointids[sub]))
 
         postid = ""
         print("total hours: %d (%d min). interval (min): %d. iterations: %d" %
@@ -203,7 +207,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                     postsinSubThisRun = 0
                     breakpointSet = False
                     breakpointid = breakpointids[sub]
-                    print("%s: start breakpoint: %s" % (sub, breakpointids[sub]))
+                    # print("%s: start breakpoint: %s" % (sub, breakpointids[sub]))
 
                     for post in reddit.subreddit(sub).new(limit=250):
                         realsub = post.subreddit.display_name.lower()  # this is the one that is put in the csv
@@ -212,13 +216,13 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                         postsinSubThisRun = postsinSubThisRun + 1
 
                         if postid == breakpointid:
-                            print("    new breakpoint: %s" % (breakpointids[sub]))
-                            print("       caught up to the posts we saw: %s after %d posts" % (postid, postsinSubThisRun))
+                            # print("    new breakpoint: %s" % (breakpointids[sub]))
+                            # print("       caught up to the posts we saw: %s after %d posts" % (postid, postsinSubThisRun))
                             break  # caught up to the posts we saw
 
                         if not breakpointSet:  # set the first post seen as the break point
                             breakpointids[sub] = postid
-                            print("    breakpoint set to %s" % (postid))
+                            # print("    breakpoint set to %s" % (postid))
                             breakpointSet = True
 
                         if postid not in seenids:
@@ -229,7 +233,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                             if not postauth == "None":  # since converted to string
                                 authkarma = str(post.author.link_karma + post.author.comment_karma)
                             else:
-                                print("   NONE AUTHOR ON %s" % (postid))
+                                # print("   NONE AUTHOR ON %s" % (postid))
                                 authkarma = "0"
 
                             date = post.created_utc
@@ -237,7 +241,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                             t = "placeholder title for %s" % (str(postid))
                             try:
                                 t = title
-                                # print(" [[%s]] -- %s" % (realsub, t))  # print to console
+                                print(" [[%s]] -- %s" % (realsub, t))  # print to console
                             except UnicodeDecodeError:
                                 t = "placeholder title;   UnicodeDecodeError on %s" % (str(postid))
                                 print("  UnicodeDecodeError on " + str(postid))
@@ -255,7 +259,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                                 except UnicodeEncodeError:
                                     outfile.write(",%s,UnicodeEncodeError \n" % (postid))  # for posts with special characters
 
-                    print("    %s: end breakpoint: %s" % (sub, breakpointids[sub]))
+                    # print("    %s: end breakpoint: %s" % (sub, breakpointids[sub]))
 
             except KeyboardInterrupt:
                 if not writeToFile:
@@ -283,9 +287,9 @@ writeToFile = True
 postToReddit = False
 
 totaldays = 0
-hoursoffset = 1
-interval = 5  # min
-outfileName = "testingNewBreakpoint3.csv"
+hoursoffset = 0.1
+interval = 1  # min
+outfileName = "testingNewEncoding.csv"
 
 print("writeToFile: %s\npostToReddit: %s\noutfilename: %s" % (str(writeToFile), str(postToReddit), outfileName))
 time.sleep(5)
