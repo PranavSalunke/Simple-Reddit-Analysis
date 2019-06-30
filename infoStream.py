@@ -27,6 +27,23 @@ def localTimeIsUTC():
     return (nowformated == nowutcformated)  # if equal, local time is utc
 
 
+def cleanTitle(uncleanTitle):
+    cleanedTitle = uncleanTitle.replace(",", "")  # so there aren't any comma issues when reading the csv
+    cleanedTitle = cleanedTitle.replace("\"", "")  # quote
+    # the weird characters are no longer needed now that I endcode/decode
+    #   but I'll leave it here since they are common characters
+    cleanedTitle = cleanedTitle.replace("’", "")  # weird apostrophe
+    cleanedTitle = cleanedTitle.replace("‘", "")  # weird apostrophe
+    cleanedTitle = cleanedTitle.replace("“", "")  # weird quote
+    cleanedTitle = cleanedTitle.replace("”", "")  # weird quote
+
+    # replace all the other non ascii stuff (emojis, etc)
+    cleanedTitle = cleanedTitle.encode("ascii", "namereplace")
+    cleanedTitle = cleanedTitle.decode("ascii")
+
+    return cleanedTitle
+
+
 def waitUntil(timestr, mintoWaitWhileStarting, postXdays):
     # example timestr = "03/31/19 23:48:18"
     # example mintoWaitWhileStarting = 120
@@ -39,7 +56,7 @@ def waitUntil(timestr, mintoWaitWhileStarting, postXdays):
     startcounter = 0
     startCounterLim = (postXdays*24*60)/mintoWaitWhileStarting  # post every 5 days
     while not started:
-        now = datetime.datetime.now() - datetime.timedelta(hours=7)  # local to home
+        now = datetime.datetime.now() - datetime.timedelta(utcToPstHoursDiff)  # local to home
 
         if now >= waitTime:
             print("IT HAS STARTED now is %s" % (str(now)))
@@ -76,34 +93,15 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
 
         # NOTE: for the streamed data, Iteration Time (home) and Iteration Time (utc) is the time the stream was started
 
-        if not localIsUTC:  # tell err file when the run began
-            utctime = str(datetime.datetime.utcnow())
-            localtime = str(datetime.datetime.now())
-            hometime = str(datetime.datetime.now())
-            err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
-            # err.write("\n\n - " + str(datetime.datetime.utcnow()) + " (utc)\n")
-            # err.write(" - "str(datetime.datetime.now()) + " (local)\n")
-            # err.write(" - "str(datetime.datetime.now()) + " (home)\n")
-        else:
-            utctime = str(datetime.datetime.utcnow())
-            localtime = str(datetime.datetime.now())
-            hometime = str(datetime.datetime.now() - datetime.timedelta(hours=7))  # convert to local time
-
-            err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
-            # err.write("\n\n - " + str(datetime.datetime.utcnow()) + " (utc)\n")
-            # err.write(" - "str(datetime.datetime.now()) + " (local)\n")
-            # err.write(" - " + str(datetime.datetime.now() - datetime.timedelta(hours=8)) + " (home)\n")
-
+        utctime = datetime.datetime.utcnow().strftime("%x %X")
+        localtime = datetime.datetime.now().strftime("%x %X")
         if not localIsUTC:
-            utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
-            localtime = str(datetime.datetime.now().strftime("%x %X"))
-            hometime = str(datetime.datetime.now().strftime("%x %X"))
-            print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), utctime, localtime, hometime))
+            hometime = datetime.datetime.now().strftime("%x %X")
         else:
-            utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
-            localtime = str(datetime.datetime.now().strftime("%x %X"))
-            hometime = str((datetime.datetime.now() - datetime.timedelta(hours=7)).strftime("%x %X"))
-            print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), utctime, localtime, hometime))
+            hometime = (datetime.datetime.now() - datetime.timedelta(utcToPstHoursDiff)).strftime("%x %X")  # convert to local time
+        # tell err file when the run began
+        err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
+        print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), utctime, localtime, hometime))
 
         if writeToFile:
             outfile.write("Iteration Time (home),Iteration Time (utc),Post Time (utc),Subreddit,Title, Postid ,Author,Total Karma\n")
@@ -115,11 +113,7 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
                 realsub = post.subreddit.display_name.lower()  # this is the one that is put in the csv
                 postid = post.id
                 postslookedat = postslookedat + 1
-                title = post.title
-                title = title.replace(",", "")  # so there aren't any comma issues when reading the csv
-                title = title.replace("’", "")  # weird apostrophe
-                title = title.replace("\"", "")  # quote
-                title = title.replace("“", "")  # weird quote
+                title = cleanTitle(post.title)
 
                 # can assume post has not been seen before
                 date = post.created_utc
@@ -145,6 +139,7 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
                                       "\"" + "," + postid + "," + postauth + "," + authkarma)
                         outfile.write("\n")
                     except UnicodeEncodeError:
+                        # should not need now that I encode/decode in clean title
                         outfile.write(",%s,UnicodeEncodeError \n" % (postid))  # for posts with special characters
 
                 nowtime = datetime.datetime.now()
@@ -173,12 +168,12 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
             if not localIsUTC:
                 errTime = str(datetime.datetime.now().strftime("%x %X"))
             else:
-                errTime = str((datetime.datetime.now() - datetime.timedelta(hours=7)).strftime("%x %X"))
+                errTime = str((datetime.datetime.now() - datetime.timedelta(utcToPstHoursDiff)).strftime("%x %X"))
             print("Prawcore notfound ERROR CAUGHT. Check error log.")
 
             err.write("Prawcore notfound ERROR CAUGHT at %s\n" % (str(errTime)))
             err.write(traceback.format_exc())
-            err.write("\n")        
+            err.write("\n")
 
             err.flush()
             if writeToFile:
@@ -188,14 +183,14 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
                 # too many attempts
                 print("too may attempts; exiting")
                 err.write("too may attempts; exiting\n")
-                exit()                
+                exit()
         except:
             print("SOME ERROR :((")
             exceptCount += 1
             if not localIsUTC:
                 errTime = str(datetime.datetime.now().strftime("%x %X"))
             else:
-                errTime = str((datetime.datetime.now() - datetime.timedelta(hours=7)).strftime("%x %X"))
+                errTime = str((datetime.datetime.now() - datetime.timedelta(utcToPstHoursDiff)).strftime("%x %X"))
 
             print("ERROR CAUGHT. Check error log.")
             err.write("ERROR CAUGHT (overall exception catch) at %s\n" % (str(errTime)))
@@ -224,20 +219,21 @@ writeToFile = True
 postToReddit = False
 
 # note for some reason a stream for popular breaks (might be too fast?)
+utcToPstHoursDiff = 7
 totaldays = 0
-hoursoffset = 0.1 # 6 min 
+hoursoffset = 0.1  # 6 min
 outfileName = "data/classdemo.csv"
 
 print("writeToFile: %s\npostToReddit: %s\noutfilename: %s" % (str(writeToFile), str(postToReddit), outfileName))
 time.sleep(5)
 
 if postToReddit:
-    startTime = datetime.datetime.now() - datetime.timedelta(hours=7)
+    startTime = datetime.datetime.now() - datetime.timedelta(utcToPstHoursDiff)
     reddit.subreddit(configR.submitSub).submit(title='-->>-->> Start: %s' % (str(startTime)), selftext="info")
 
 info(totaldays, hoursoffset, outfileName, writeToFile)
 if postToReddit:
-    endTime = datetime.datetime.now() - datetime.timedelta(hours=7)
+    endTime = datetime.datetime.now() - datetime.timedelta(utcToPstHoursDiff)
     reddit.subreddit(configR.submitSub).submit(title='-->>-->> End: %s; \nElapsed: %s' %
                                                (str(endTime), str(endTime-startTime)), selftext="info")
 
