@@ -111,20 +111,18 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
         iterations, totalmin = numberiterations(totalhours, interval)
 
         if not localIsUTC:  # tell err file when the run began
-            utctime = datetime.datetime.utcnow()
-            localtime = datetime.datetime.now()
-            hometime = datetime.datetime.now()
+            utctime = datetime.datetime.utcnow().strftime("%x %X")
+            localtime = datetime.datetime.now().strftime("%x %X")
+            hometime = datetime.datetime.now().strftime("%x %X")
             err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
-            print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), str(utctime.strftime("%x %X")),
-                                                              str(localtime.strftime("%x %X")), str(hometime.strftime("%x %X"))))
+            print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), str(utctime), str(localtime), str(hometime)))
         else:
-            utctime = datetime.datetime.utcnow()
-            localtime = datetime.datetime.now()
-            hometime = datetime.datetime.now() - datetime.timedelta(hours=utcToPstHoursDiff)  # convert to local time
+            utctime = datetime.datetime.utcnow().strftime("%x %X")
+            localtime = datetime.datetime.now().strftime("%x %X")
+            hometime = (datetime.datetime.now() - datetime.timedelta(hours=utcToPstHoursDiff)).strftime("%x %X")  # convert to local time
 
             err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
-            print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), str(utctime.strftime("%x %X")),
-                                                              str(localtime.strftime("%x %X")), str(hometime.strftime("%x %X"))))
+            print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), str(utctime), str(localtime), str(hometime)))
 
         if writeToFile:
             outfile.write("Iteration Time (home),Iteration Time (utc),Post Time (utc),Subreddit,Title, Postid ,Author,Total Karma\n")
