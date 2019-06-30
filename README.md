@@ -12,7 +12,7 @@ There are two parts to this project: scraping Reddit and analyzing the data that
 
 [Reddit](reddit.com) is a widely used website that I spend a lot of time on. 
 
-There are millions of people worldwide that use Reddit all through out the day. I began to have a couple questions.
+There are millions of people around the world that use Reddit. Knowing that got me wondering....
 
 This is some of the stuff I wanted to learn:
 * When the most posts were made
@@ -52,7 +52,10 @@ I had two methods in which I scraped the data, both outputted the same data in t
 The first method involved scraping posts in regular intervals for a given period of time. 
 
 For example, say we want to gather data for 5 hours in 5 minute intervals. That would be 300 minutes in total or 60 intervals. 
-So, every 5 minutes, for 60 intervals, it would scrape posts from a given subreddit. The way I had it,  25 posts were read every interval or until a post was seen again. 
+So, every 5 minutes, for 60 intervals, it would scrape posts from a given subreddit. The way I had it,  25 posts were read every interval or until a post was seen again (by using a tracking post that I called the breakpoint). 
+
+
+This can be used with more than one subreddit at once just by setting the `subsOfInterest` list. 
 
 
 The duration and interval can be changed.
@@ -78,7 +81,7 @@ for the number of iterations:
 I had originally created this for smaller subreddits where there weren't more than 25 posts every 5 minutes. However, when I used larger subreddits like r/askreddit, I realized that I was missing a ton of posts while it was waiting for the next iteration. In order to fix that, I made smaller itervals until I realized that PRAW supports a way to create a constant stream of posts.
 
 
-All the data handling is the same as the Interval method except this uses a stream.
+All the data handling is the same as the Interval method except this uses a stream. Currently this only makes a stream for one subreddit (popular and all count as subreddits)
 
 
 Note: Iteration Time (home and utc) in this case is just the time the script was started. 
@@ -102,14 +105,14 @@ read posts as they come in
 At first, I thought this would be pretty easy... It wasn't.
 
 
-I wanted to run this for long periods of time in order to get lots of data to analyze. I couldn't do it on my laptop since I had to shut it down. So, I needed to run it on a raspberry pi. But with that, came the problem that I couldn't monitor it when I was out and about. So I had to learn to create log files, and I even made a way to post debug stuff to a private subreddit so I could look it when I couldn't access the pi. 
+I wanted to run this for long periods of time in order to get lots of data to analyze. I couldn't do it on my laptop since I had to shut it down. So I had to find another way. I ended up running it on a raspberry pi. But with that, came the problem that I couldn't monitor it when I was out and about. So I had to learn to create log files, and I even made a way to post debug stuff to a private subreddit so I could look it when I couldn't access the pi (was only set up on the local network). 
 
 
 
-Another issue that came from using the pi was that it uses UTC as the local time but my laptop is in PST. I was very confused about why the times didn't line up, but once I figured it out, I would manually change the time format when running it. I quickly got bored of that and I had to find a way to detect which system I was using. 
+Another issue that came from using the pi was that it uses UTC as the local time but my laptop is in PST. I was very confused about why the times didn't line up, but once I figured it out, I would manually change the time format when running it. I quickly got bored of that and I had to find a way to detect which system I was using. Only issue is that converting from UTC to PST is +7 or 8 hours depending on day light savings and I don't do that automatically as of now. 
 
 
-I also had to learn to do error checks. In the beginning, it would crash a lot because of exceptions. I realized some of these were due to special characters in post titles. So I began to check for those and just catch it and move on. There were other errors like this for encoding and decoding characters that I had to take care of. As frustrating as it was, it was interesting to see that this was something to keep in mind.
+I also had to learn to do error checks. In the beginning, it would crash a lot because of exceptions. I realized some of these were due to special characters in post titles. So I began to check for those and just catch it and move on. There were other errors like this for encoding and decoding characters that I had to take care of. As frustrating as it was, it was interesting to see that this was something to keep in mind for long running scripts.
 
 
 In one of the first runs I had, the csv wouldn't be read correctly. It took me a while to learn that it wasn't something I was doing wrong (for once) but that some titles would have commas in them that would confuse the csv reader. So I began to remove those as I read the titles in. Same thing with double quotes.
