@@ -27,7 +27,7 @@ def localTimeIsUTC():
     return (nowformated == nowutcformated)  # if equal, local time is utc
 
 
-def cleanTitle(uncleanTitle):
+def cleanTitle(uncleanTitle, replaceChars=False):
     cleanedTitle = uncleanTitle.replace(",", "")  # so there aren't any comma issues when reading the csv
     cleanedTitle = cleanedTitle.replace("\"", "")  # quote
     # the weird characters are no longer needed now that I endcode/decode
@@ -38,8 +38,9 @@ def cleanTitle(uncleanTitle):
     cleanedTitle = cleanedTitle.replace("”", "")  # weird quote
 
     # replace all the other non ascii stuff (emojis, etc)
-    cleanedTitle = cleanedTitle.encode("ascii", "namereplace")
-    cleanedTitle = cleanedTitle.decode("ascii")
+    if replaceChars:
+        cleanedTitle = cleanedTitle.encode("ascii", "namereplace")
+        cleanedTitle = cleanedTitle.decode("ascii")
 
     return cleanedTitle
 
@@ -77,7 +78,7 @@ def waitUntil(timestr, mintoWaitWhileStarting, postXdays):
                 time.sleep(mintoWaitWhileStarting*60)
 
 
-def info(totalDays, houroffset, outfileName, writeToFile=False):
+def info(totalDays, houroffset, outfileName, replaceChars=False, writeToFile=False):
     streamStartTime = datetime.datetime.now()
     lastFileFlush = datetime.datetime.now()
     errName = "info_error_log.txt"
@@ -101,7 +102,7 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
             hometime = (datetime.datetime.now() - datetime.timedelta(utcToPstHoursDiff)).strftime("%x %X")  # convert to local time
         # tell err file when the run began
         err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
-        print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), utctime, localtime, hometime))
+        print("%s (utc) | %s (local) | %s (home)" % (utctime, localtime, hometime))
 
         if writeToFile:
             outfile.write("Iteration Time (home),Iteration Time (utc),Post Time (utc),Subreddit,Title, Postid ,Author,Total Karma\n")
@@ -113,7 +114,7 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
                 realsub = post.subreddit.display_name.lower()  # this is the one that is put in the csv
                 postid = post.id
                 postslookedat = postslookedat + 1
-                title = cleanTitle(post.title)
+                title = cleanTitle(post.title, replaceChars)
 
                 # can assume post has not been seen before
                 date = post.created_utc
@@ -215,6 +216,7 @@ def info(totalDays, houroffset, outfileName, writeToFile=False):
         os.remove(outfileName)
 
 
+replaceChars = True
 writeToFile = True
 postToReddit = False
 
@@ -222,7 +224,7 @@ postToReddit = False
 utcToPstHoursDiff = 7
 totaldays = 0
 hoursoffset = 0.1  # 6 min
-outfileName = "data/classdemo.csv"
+outfileName = "test_Stream_replace.csv"
 
 print("writeToFile: %s\npostToReddit: %s\noutfilename: %s" % (str(writeToFile), str(postToReddit), outfileName))
 time.sleep(5)
@@ -231,7 +233,8 @@ if postToReddit:
     startTime = datetime.datetime.now() - datetime.timedelta(utcToPstHoursDiff)
     reddit.subreddit(configR.submitSub).submit(title='-->>-->> Start: %s' % (str(startTime)), selftext="info")
 
-info(totaldays, hoursoffset, outfileName, writeToFile)
+info(totaldays, hoursoffset, outfileName, replaceChars, writeToFile)
+
 if postToReddit:
     endTime = datetime.datetime.now() - datetime.timedelta(utcToPstHoursDiff)
     reddit.subreddit(configR.submitSub).submit(title='-->>-->> End: %s; \nElapsed: %s' %

@@ -78,7 +78,7 @@ def initBreakpointDict(subsOfInterest):
     return breakpointidDict
 
 
-def cleanTitle(uncleanTitle):
+def cleanTitle(uncleanTitle, replaceChars=False):
     cleanedTitle = uncleanTitle.replace(",", "")  # so there aren't any comma issues when reading the csv
     cleanedTitle = cleanedTitle.replace("\"", "")  # quote
     # the weird characters are no longer needed now that I endcode/decode
@@ -89,19 +89,22 @@ def cleanTitle(uncleanTitle):
     cleanedTitle = cleanedTitle.replace("”", "")  # weird quote
 
     # replace all the other non ascii stuff (emojis, etc)
-    cleanedTitle = cleanedTitle.encode("ascii", "namereplace")
-    cleanedTitle = cleanedTitle.decode("ascii")
+    if replaceChars:
+        cleanedTitle = cleanedTitle.encode("ascii", "namereplace")
+        cleanedTitle = cleanedTitle.decode("ascii")
 
     return cleanedTitle
 
 
-def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
+def info(totalDays, houroffset, interval, outfileName, replaceChars=False, writeToFile=False):
     errName = "info_error_log.txt"
     localIsUTC = localTimeIsUTC()
     totalpostslookedat = 0
     # utcToPstHoursDiff defined below before calling info(...)
+
     # subsOfInterest = ["learnpython", "Python", "ucsc"]
-    subsOfInterest = ["askreddit", "aww", "showerthoughts"]
+    # subsOfInterest = ["askreddit", "aww", "showerthoughts"]
+    subsOfInterest = ["popular"]
 
     with open(outfileName, "w") as outfile, open(errName, "a") as err:
         seenids = []
@@ -115,14 +118,14 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
             localtime = datetime.datetime.now().strftime("%x %X")
             hometime = datetime.datetime.now().strftime("%x %X")
             err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
-            print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), str(utctime), str(localtime), str(hometime)))
+            print("iter[0] - %s (utc) | %s (local) | %s (home)" % (str(utctime), str(localtime), str(hometime)))
         else:
             utctime = datetime.datetime.utcnow().strftime("%x %X")
             localtime = datetime.datetime.now().strftime("%x %X")
             hometime = (datetime.datetime.now() - datetime.timedelta(hours=utcToPstHoursDiff)).strftime("%x %X")  # convert to local time
 
             err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
-            print("%s - %s (utc) | %s (local) | %s (home)" % (str(0), str(utctime), str(localtime), str(hometime)))
+            print("iter[0] - %s (utc) | %s (local) | %s (home)" % (str(utctime), str(localtime), str(hometime)))
 
         if writeToFile:
             outfile.write("Iteration Time (home),Iteration Time (utc),Post Time (utc),Subreddit,Title, Postid ,Author,Total Karma\n")
@@ -135,7 +138,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
                 realsub = post.subreddit.display_name.lower()  # this is the one that is put in the csv
                 postid = post.id
                 totalpostslookedat = totalpostslookedat + 1
-                title = cleanTitle(post.title)
+                title = cleanTitle(post.title, replaceChars)
 
                 if breakpointid == None:  # set breakpoint to first post
                     breakpointid = postid
@@ -164,7 +167,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
 
                     if writeToFile:
                         try:
-                            outfile.write(str(hometime.strftime("%x %X")) + "," + str(utctime.strftime("%x %X")) + ",")
+                            outfile.write(hometime + "," + utctime + ",")
                             writedates = str(datetime.datetime.utcfromtimestamp(date).strftime("%x %X")) + ","
                             outfile.write(writedates + "\"" + realsub + "\"" + "," + "\"" + str(t) +
                                           "\"" + "," + postid + "," + postauth + "," + authkarma)
@@ -180,7 +183,8 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
 
         ### iterations ###
 
-        for i in range(1, iterations + 1):
+        for i in range(1, iterations+1):
+            print("== iter[%d] ==" % (i))
             err.flush()
             if writeToFile:
                 outfile.flush()
@@ -215,7 +219,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
 
                         if postid not in seenids:
                             seenids.append(postid)
-                            title = cleanTitle(post.title)
+                            title = cleanTitle(post.title, replaceChars)
 
                             postauth == str(post.author)
                             if not postauth == "None":  # since converted to string
@@ -268,6 +272,7 @@ def info(totalDays, houroffset, interval, outfileName, writeToFile=False):
         os.remove(outfileName)
 
 
+replaceChars = True
 writeToFile = True
 postToReddit = False
 
@@ -275,7 +280,7 @@ utcToPstHoursDiff = 7
 totaldays = 0
 hoursoffset = 0.1
 interval = 1  # min
-outfileName = "testingNewEncoding.csv"
+outfileName = "test_Interval_replace.csv"
 
 print("writeToFile: %s\npostToReddit: %s\noutfilename: %s" % (str(writeToFile), str(postToReddit), outfileName))
 time.sleep(5)
@@ -284,7 +289,8 @@ if postToReddit:
     startTime = datetime.datetime.now() - datetime.timedelta(hours=utcToPstHoursDiff)
     reddit.subreddit(configR.submitSub).submit(title='-->>-->> Start: %s' % (str(startTime)), selftext="info")
 
-info(totaldays, hoursoffset, interval, outfileName, writeToFile)
+info(totaldays, hoursoffset, interval, outfileName, replaceChars, writeToFile)
+
 if postToReddit:
     endTime = datetime.datetime.now() - datetime.timedelta(hours=utcToPstHoursDiff)
     reddit.subreddit(configR.submitSub).submit(title='-->>-->> End: %s; \nElapsed: %s' %
