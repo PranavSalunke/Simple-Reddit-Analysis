@@ -11,21 +11,11 @@ import pickle
 from bokeh.plotting import figure, output_file, show, save
 
 
-def creeatePickledName(filename, field):
-    slashPos = filename.find("/")
-    slashPos = slashPos if slashPos != -1 else 0  # if no slash, start at beggining
-    dotPos = filename.find(".")
-    pickleName = "pickledFigs/" + filename[slashPos:dotPos] + "__" + field + ".pickle"
+def createPickledName(filename, field):
+    _, basefilename = os.path.split(filename)
+    basefilename = basefilename[:basefilename.rfind(".")]  # ignore extention
+    pickleName = "pickledFigs/" + basefilename + "__" + field + ".pickle"
     return pickleName
-
-
-def createPickledFig(pickleName, fig):
-    pickle.dump(fig, open(pickleName, "wb"))
-
-
-def loadPickledFig(figname):
-    fig = pickle.load(open(figname, 'rb'))
-    plt.show()
 
 
 def cleanFile(filename):
@@ -82,9 +72,8 @@ def preAnalyze(filename):
     return doAnalyze
 
 
-def analyze(filename, field, showAllDates, plottingDate=True, saveHTML=False):
+def analyze(filename, field, showAllDates, plottingDate=True, makePickledFigs=False, saveHTML=False):
     print("starting analyze")
-    showAllDates = showAllDates
 
     print("loading data")
     data = pandas.read_csv(filename, encoding="ISO-8859-1")
@@ -101,30 +90,37 @@ def analyze(filename, field, showAllDates, plottingDate=True, saveHTML=False):
     print("building plot")
     startBuild = datetime.datetime.now()
 
-    fig, ax = plt.subplots()
-
     if plottingDate:
-        # matplotlib is verry slow for huge data sets
-        # but i knwo how to show date
-        ax.set_title("%s\n%s vs Counts" % (filename, field))
-        ax.plot_date(ith.index, ith.values)
+        pickleName = createPickledName(filename, field)
+        if not os.path.exists(pickleName):
+            # matplotlib is verrry slow for huge data sets
+            # but I know how to show date using matplotlib (and I know this shows ok using plt)
+            fig, ax = plt.subplots()
+            ax.set_title("%s\n%s vs Counts" % (filename, field))
+            ax.plot_date(ith.index, ith.values)
 
-        dateformat = mdates.DateFormatter("%x %I:%M:%S%p")
-        ax.xaxis.set_major_formatter(dateformat)
+            dateformat = mdates.DateFormatter("%x %I:%M:%S%p")
+            ax.xaxis.set_major_formatter(dateformat)
 
-        if showAllDates:
-            plt.xticks(ith.index, rotation=10)  # show every date
-        else:
-            fig.autofmt_xdate()  # format so its not too crowded
+            if showAllDates:
+                plt.xticks(ith.index, rotation=10)  # show every date
+            else:
+                fig.autofmt_xdate()  # format so its not too crowded
+            print("  built plot")
+            print("    Build took: %s" % (str(datetime.datetime.now() - startBuild)))
+            plt.show()
 
-        pn = creeatePickledName(filename, field)
-        if not os.path.exists(pn):
-            print("pickling fig")
-            createPickledFig(pn, fig)
+            if makePickledFigs:
+                print("pickling fig")
+                pickle.dump(fig, open(pickleName, "wb"))
+        else:  # just load the pickledfig (also saves on process time)
+            print("loading pickedfig took: %s" % (str(datetime.datetime.now() - startBuild)))
+            # load the pickled fig
+            fig = pickle.load(open(pickleName, 'rb'))
+            plt.show()
 
-        plt.show()
     else:
-        # bokeh is better for large data sets, not sure how to do time on it so use matplotlib
+        # bokeh is better for large data sets, not sure how sto do time on it so use matplotlib
         if field == "Total Karma":
             plot = figure(plot_width=800, plot_height=500, title="%s -- %s vs Counts" % (filename, field))
         else:
@@ -132,21 +128,23 @@ def analyze(filename, field, showAllDates, plottingDate=True, saveHTML=False):
             plot = figure(x_range=list(ith.index), plot_width=800, plot_height=500, title="%s -- %s vs Counts" % (filename, field))
 
         plot.circle(ith.index, ith.values, size=8, color="blue", alpha=0.8)
-        basefilename = filename[:filename.rfind(".")]  # ignore extention
+        _, basefilename = os.path.split(filename)
+        basefilename = basefilename[:basefilename.rfind(".")]  # ignore extention
         htmlfilename = "analyze_%s_%s.html" % (basefilename, field)
         output_file(htmlfilename)
+        print("  built plot")
+        print("    Build took: %s" % (str(datetime.datetime.now() - startBuild)))
         show(plot)
-        time.sleep(0.3)  # let the rest load
+
         if not saveHTML:  # just show it, dont save the html files
+            time.sleep(1)  # let it load or the graph wont show
             try:
                 os.remove(htmlfilename)  # remove the html file
+                print("removed plot %s" % (htmlfilename))
             except PermissionError:  # still loading
-                print("wait more")
                 time.sleep(0.5)  # wait another half second
                 os.remove(htmlfilename)  # try to remove the html file again
-
-    print("  built plot")
-    print("    Build took: %s" % (str(datetime.datetime.now() - startBuild)))
+                print("removed plot %s (on second try)" % (htmlfilename))
 
 
 # Fields queried:
@@ -165,14 +163,13 @@ def analyze(filename, field, showAllDates, plottingDate=True, saveHTML=False):
 # filename = "data/ucsc_2day12hour_interval5min.csv"
 # filename = "data/ucsc_2day12hour_stream.csv"
 
-# filename = "data/askreddit_2day12hour_interval5min.csv"
+filename = "data/askreddit_2day12hour_interval5min.csv"
 # filename = "data/askreddit_2day12hour_stream.csv"
 
 # filename = "data/Popular_2day12hour_interval5min.csv"
 # filename = "data/popular_short_stream2.csv"
 
-
-filename = "testingNewBreakpoint3_b.csv"
+# filename = "test_interval.csv"
 
 fields = ["Iteration Time (home)", "Iteration Time (utc)", "Post Time (utc)", "Subreddit", "Title", "Author", "Total Karma"]
 # not plotting postid since that is unique anyway
@@ -223,5 +220,5 @@ for f in fields:
 
     print(" === " + f.upper() + " === ")
     p = "time" in f.lower()
-    analyze(filename, f, showAllDates, p)
+    analyze(filename, f, showAllDates, p, makePickledFigs=True)
     print()
