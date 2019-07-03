@@ -96,15 +96,26 @@ def cleanTitle(uncleanTitle, replaceChars=False):
     return cleanedTitle
 
 
-def info(totalDays, houroffset, interval, outfileName, replaceChars=False, writeToFile=False):
+def infoInterval(infoSettings):
+
+    # extract settings
+    totaldays = infoSettings["totaldays"]
+    hoursoffset = infoSettings["hoursoffset"]
+    interval = infoSettings["interval"]
+    outfileName = infoSettings["outfileName"]
+    subsOfInterest = infoSettings["subsOfInterest"]
+    # set default settings, (assumes None)
+    # <Default> if not.....
+    initialNumPosts = 25 if not infoSettings["initialNumPosts"] else infoSettings["initialNumPosts"]
+    numPostsPerInterval = 250 if not infoSettings["numPostsPerInterval"] else infoSettings["numPostsPerInterval"]
+    replaceChars = False if not infoSettings["replaceChars"] else infoSettings["replaceChars"]
+    writeToFile = False if not infoSettings["writeToFile"] else infoSettings["writeToFile"]
+    printToConsole = True if not infoSettings["printToConsole"] else infoSettings["printToConsole"]
+
     errName = "info_interval_error_log.txt"
     localIsUTC = localTimeIsUTC()
     totalpostslookedat = 0
     # utcToPstHoursDiff defined below before calling info(...)
-
-    # subsOfInterest = ["learnpython", "Python", "ucsc"]
-    subsOfInterest = ["askreddit", "aww", "showerthoughts"]
-    # subsOfInterest = ["popular"]
 
     with open(outfileName, "w") as outfile, open(errName, "a") as err:
         seenids = []
@@ -120,13 +131,14 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
         else:
             hometime = (datetime.datetime.now() - datetime.timedelta(hours=utcToPstHoursDiff)).strftime("%x %X")  # convert to local time
         err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
-        print("iter[0] - %s (utc) | %s (local) | %s (home)" % (utctime, localtime, hometime))
+        if printToConsole:
+            print("iter[0] - %s (utc) | %s (local) | %s (home)" % (utctime, localtime, hometime))
 
         if writeToFile:
             outfile.write("Iteration Time (home),Iteration Time (utc),Post Time (utc),Subreddit,Title, Postid ,Author,Total Karma\n")
         for sub in subsOfInterest:
             breakpointid = breakpointids[sub]
-            for post in reddit.subreddit(sub).new(limit=25):
+            for post in reddit.subreddit(sub).new(limit=initialNumPosts):
                 # get the real sub name
                 #   if we use "all" or "popular" those arent 'real' subreddits
                 #   if we use a 'real' name like 'askreddit' it will be the same
@@ -152,13 +164,16 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
                     t = "placeholder title for %s" % (str(postid))
                     try:
                         t = title
-                        print(" [[%s]] -- %s" % (realsub, t))  # print to console
+                        if printToConsole:
+                            print(" [[%s]] -- %s" % (realsub, t))  # print to console
                     except UnicodeDecodeError:
                         t = "placeholder title;   UnicodeDecodeError on %s" % (str(postid))
-                        print("  UnicodeDecodeError on " + str(postid))
+                        if printToConsole:
+                            print("  UnicodeDecodeError on " + str(postid))
                     except:
                         t = "placeholder title;   Error on %s" % (str(postid))
-                        print("  something went wrong on  " + str(postid))
+                        if printToConsole:
+                            print("  something went wrong on  " + str(postid))
 
                     if writeToFile:
                         try:
@@ -173,8 +188,8 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
                     seenids.append(postid)
 
         postid = ""
-        print("total hours: %d (%d min). interval (min): %d. iterations: %d" %
-              (totalhours, totalmin, interval, iterations))
+        if printToConsole:
+            print("total hours: %d (%d min). interval (min): %d. iterations: %d" % (totalhours, totalmin, interval, iterations))
 
         ### iterations ###
 
@@ -183,7 +198,8 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
             if writeToFile:
                 outfile.flush()
             try:
-                print("== iter[%d] ==" % (i))
+                if printToConsole:
+                    print("== iter[%d] ==" % (i))
                 time.sleep(interval * 60)
                 # get iteration time
                 utctime = datetime.datetime.utcnow().strftime("%x %X")
@@ -198,7 +214,7 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
                     breakpointSet = False
                     breakpointid = breakpointids[sub]
 
-                    for post in reddit.subreddit(sub).new(limit=250):
+                    for post in reddit.subreddit(sub).new(limit=numPostsPerInterval):
                         realsub = post.subreddit.display_name.lower()  # this is the one that is put in the csv
                         postid = post.id
                         totalpostslookedat = totalpostslookedat + 1
@@ -234,13 +250,16 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
                             t = "placeholder title for %s" % (str(postid))
                             try:
                                 t = title
-                                print(" [[%s]] -- %s" % (realsub, t))  # print to console
+                                if printToConsole:
+                                    print(" [[%s]] -- %s" % (realsub, t))  # print to console
                             except UnicodeDecodeError:
                                 t = "placeholder title;   UnicodeDecodeError on %s" % (str(postid))
-                                print("  UnicodeDecodeError on " + str(postid))
+                                if printToConsole:
+                                    print("  UnicodeDecodeError on " + str(postid))
                             except:
                                 t = "placeholder title;   Error on %s" % (str(postid))
-                                print("  something went wrong on  " + str(postid))
+                                if printToConsole:
+                                    print("  something went wrong on  " + str(postid))
 
                             if writeToFile:
                                 try:
@@ -275,24 +294,37 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
         os.remove(outfileName)
 
 
-replaceChars = True
-writeToFile = True
 postToReddit = False
-
 utcToPstHoursDiff = 7
-totaldays = 0
-hoursoffset = 0.5
-interval = 5  # min
-outfileName = "test_Interval_replace3.csv"
 
-print("writeToFile: %s\npostToReddit: %s\noutfilename: %s" % (str(writeToFile), str(postToReddit), outfileName))
-time.sleep(5)
+infoIntervalSettings = {"totaldays": 0,
+                        "hoursoffset": 0.1,
+                        "interval": 1,  # min
+                        "outfileName": "test_Interval_settings.csv",
+                        "subsOfInterest": ["askreddit", "aww", "showerthoughts"],  # list
+                        # for the reset, put "None" to use the default
+                        "initialNumPosts": None,  # how many posts to read initially
+                        "numPostsPerInterval": None,  # how many posts to read every iteration (or until caught up)
+                        "replaceChars": True,  # either True/False/None
+                        "writeToFile": True,    # either True/False/None
+                        "printToConsole": True  # either True/False/None
+                        }
+
+if infoIntervalSettings["printToConsole"]:
+    for k in infoIntervalSettings.keys():
+        print("%s: %s" % (str(k), str(infoIntervalSettings[k])))
+    try:
+        print("\nWait 5 seconds. Control C if any of these need to be changed!")
+        time.sleep(5)  # to control C if any of those settings needs to be fixed
+    except KeyboardInterrupt:
+        exit()
 
 if postToReddit:
     startTime = datetime.datetime.now() - datetime.timedelta(hours=utcToPstHoursDiff)
     reddit.subreddit(configR.submitSub).submit(title='-->>-->> Start: %s' % (str(startTime)), selftext="info")
 
-info(totaldays, hoursoffset, interval, outfileName, replaceChars, writeToFile)
+started = datetime.datetime.now()
+infoInterval(infoIntervalSettings)
 
 if postToReddit:
     endTime = datetime.datetime.now() - datetime.timedelta(hours=utcToPstHoursDiff)
