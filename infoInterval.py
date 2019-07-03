@@ -97,14 +97,14 @@ def cleanTitle(uncleanTitle, replaceChars=False):
 
 
 def info(totalDays, houroffset, interval, outfileName, replaceChars=False, writeToFile=False):
-    errName = "info_error_log.txt"
+    errName = "info_interval_error_log.txt"
     localIsUTC = localTimeIsUTC()
     totalpostslookedat = 0
     # utcToPstHoursDiff defined below before calling info(...)
 
     # subsOfInterest = ["learnpython", "Python", "ucsc"]
-    # subsOfInterest = ["askreddit", "aww", "showerthoughts"]
-    subsOfInterest = ["popular"]
+    subsOfInterest = ["askreddit", "aww", "showerthoughts"]
+    # subsOfInterest = ["popular"]
 
     with open(outfileName, "w") as outfile, open(errName, "a") as err:
         seenids = []
@@ -113,19 +113,14 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
         totalhours = (totaldays * 24.0) + hoursoffset
         iterations, totalmin = numberiterations(totalhours, interval)
 
+        utctime = datetime.datetime.utcnow().strftime("%x %X")
+        localtime = datetime.datetime.now().strftime("%x %X")
         if not localIsUTC:  # tell err file when the run began
-            utctime = datetime.datetime.utcnow().strftime("%x %X")
-            localtime = datetime.datetime.now().strftime("%x %X")
             hometime = datetime.datetime.now().strftime("%x %X")
-            err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
-            print("iter[0] - %s (utc) | %s (local) | %s (home)" % (str(utctime), str(localtime), str(hometime)))
         else:
-            utctime = datetime.datetime.utcnow().strftime("%x %X")
-            localtime = datetime.datetime.now().strftime("%x %X")
             hometime = (datetime.datetime.now() - datetime.timedelta(hours=utcToPstHoursDiff)).strftime("%x %X")  # convert to local time
-
-            err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
-            print("iter[0] - %s (utc) | %s (local) | %s (home)" % (str(utctime), str(localtime), str(hometime)))
+        err.write("\n\n - %s (utc) | %s (local) | %s (home)\n" % (utctime, localtime, hometime))
+        print("iter[0] - %s (utc) | %s (local) | %s (home)" % (utctime, localtime, hometime))
 
         if writeToFile:
             outfile.write("Iteration Time (home),Iteration Time (utc),Post Time (utc),Subreddit,Title, Postid ,Author,Total Karma\n")
@@ -157,7 +152,7 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
                     t = "placeholder title for %s" % (str(postid))
                     try:
                         t = title
-                        print(" " + str(t))  # print title to console
+                        print(" [[%s]] -- %s" % (realsub, t))  # print to console
                     except UnicodeDecodeError:
                         t = "placeholder title;   UnicodeDecodeError on %s" % (str(postid))
                         print("  UnicodeDecodeError on " + str(postid))
@@ -184,20 +179,19 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
         ### iterations ###
 
         for i in range(1, iterations+1):
-            print("== iter[%d] ==" % (i))
             err.flush()
             if writeToFile:
                 outfile.flush()
             try:
+                print("== iter[%d] ==" % (i))
                 time.sleep(interval * 60)
                 # get iteration time
+                utctime = datetime.datetime.utcnow().strftime("%x %X")
                 if not localIsUTC:
-                    hometime = str(datetime.datetime.now().strftime("%x %X"))
-                    utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
+                    hometime = datetime.datetime.now().strftime("%x %X")
                 else:
-                    hometime = str((datetime.datetime.now() -
-                                    datetime.timedelta(hours=utcToPstHoursDiff)).strftime("%x %X"))
-                    utctime = str(datetime.datetime.utcnow().strftime("%x %X"))
+                    hometime = (datetime.datetime.now() -
+                                datetime.timedelta(hours=utcToPstHoursDiff)).strftime("%x %X")
 
                 for sub in subsOfInterest:
                     postsinSubThisRun = 0
@@ -210,7 +204,15 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
                         totalpostslookedat = totalpostslookedat + 1
                         postsinSubThisRun = postsinSubThisRun + 1
 
-                        if postid == breakpointid:
+                        if postid == breakpointid or postid in seenids:
+                            # check in seenids incase breakpointid has been removed
+
+                            # if postid == breakpointid:
+                            #     print("REACHED BREAKPOINT")
+                            # else:
+                            #     # will happen if the breakpoint post was deleted
+                            #     print("ALREADY IN SEENIDS")
+
                             break  # caught up to the posts we saw
 
                         if not breakpointSet:  # set the first post seen as the break point
@@ -248,6 +250,7 @@ def info(totalDays, houroffset, interval, outfileName, replaceChars=False, write
                                                   "\"" + "," + postid + "," + postauth + "," + authkarma)
                                     outfile.write("\n")
                                 except UnicodeEncodeError:
+                                    # should not need now that I encode/decode in clean title
                                     outfile.write(",%s,UnicodeEncodeError \n" % (postid))  # for posts with special characters
 
             except KeyboardInterrupt:
@@ -278,9 +281,9 @@ postToReddit = False
 
 utcToPstHoursDiff = 7
 totaldays = 0
-hoursoffset = 0.1
-interval = 1  # min
-outfileName = "test_Interval_replace.csv"
+hoursoffset = 0.5
+interval = 5  # min
+outfileName = "test_Interval_replace3.csv"
 
 print("writeToFile: %s\npostToReddit: %s\noutfilename: %s" % (str(writeToFile), str(postToReddit), outfileName))
 time.sleep(5)

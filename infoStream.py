@@ -81,7 +81,7 @@ def waitUntil(timestr, mintoWaitWhileStarting, postXdays):
 def info(totalDays, houroffset, outfileName, replaceChars=False, writeToFile=False):
     streamStartTime = datetime.datetime.now()
     lastFileFlush = datetime.datetime.now()
-    errName = "info_error_log.txt"
+    errName = "info_stream_error_log.txt"
     localIsUTC = localTimeIsUTC()
     subOfInterest = "popular"
 
