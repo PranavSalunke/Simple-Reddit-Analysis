@@ -1,7 +1,6 @@
 import datetime
 import time
 import random
-# import pytz
 import csv
 import pandas
 import matplotlib.pyplot as plt
@@ -24,7 +23,6 @@ def rmSpecialCharName(line):
     # returns a new list with the escape sequence removed
     title = line[4]
     title = title.replace("\\N", "")  # because using the pattern "\\N\{[A-Z] +\}" was giving issues due to the escape N(\N)
-    # pattern = "\\\\N\{[A-Z ]+\}"
     pattern = "\{[A-Z- 0-9]+\}"
     title = re.sub(pattern, "", title)
     if not title.strip():  # empty after removing special chars
@@ -34,7 +32,8 @@ def rmSpecialCharName(line):
 
 
 def cleanFile(filename, replaceSpecialChar):
-    print("cleaning UnicodeEncodeError")
+    print("cleaning %s" % (filename))
+
     tempFilename = filename[:filename.find(".csv")] + "__temp.csv"
     os.rename(filename, tempFilename)
     allLines = None
@@ -49,7 +48,10 @@ def cleanFile(filename, replaceSpecialChar):
                 line = [x.strip() for x in line]
 
                 if replaceSpecialChar:
+                    oldtitle = line[4]
                     line = rmSpecialCharName(line)
+                    if line[4] != oldtitle:
+                        print("removed special characters from %s" % (oldtitle))
 
                 if "UnicodeEncodeError" in line:
                     print("remove UnicodeEncodeError: %s" % (line))
@@ -169,7 +171,6 @@ def analyze(filename, field, showAllDates, makePickledFigs=False, saveHTML=False
 
 def doOneField(filename, field, replaceSpecialChar, showAllDates):
     doAnalyze = preAnalyze(filename)
-    # doAnalyze = True  # when I know the format is fine
 
     if not doAnalyze or replaceSpecialChar:
         print("There are some format errors")
@@ -189,7 +190,6 @@ def doAllFields(filename, replaceSpecialChar, showAllDates):
     # not plotting postid since that is unique anyway
 
     doAnalyze = preAnalyze(filename)
-    # doAnalyze = True  # when I know the format is fine
 
     if not doAnalyze or replaceSpecialChar:
         print("There are some format errors")
@@ -212,25 +212,9 @@ def doAllFields(filename, replaceSpecialChar, showAllDates):
         print()
 
 
-# interested in how it looks for 3 subs: popular (all safe posts), askreddit (large sub), ucsc (smaller but somewhat active sub)
-
-# filename = "small_popular_int.csv"  # small popular using interval
-# filename = "askreddit_2hInt.csv"  # 2h askreddit int
-# filename = "30min_popular_stream.csv"
-# filename = "30min_popular_stream2.csv"
-# filename = "30min_popular_5minInt.csv"
-
-# long runs
-# filename = "data/ucsc_2day12hour_interval5min.csv"
-# filename = "data/ucsc_2day12hour_stream.csv"
-
-# filename = "data/askreddit_2day12hour_interval5min.csv"
-# filename = "data/askreddit_2day12hour_stream.csv"
-
-# filename = "data/Popular_2day12hour_interval5min.csv"
-# filename = "data/popular_short_stream2.csv"
-
-filename = "test_stream_replace.csv"
+filename = "test_Interval_settings.csv"  # created by infoInterval.py or infoStream.py
+showAllDates = False  # show all the collected date data if True, if False, let matplotlib create the scale
+replaceSpecialChar = True
 
 # Fields queried: (field can be any of these)
 #   Iteration Time (home),Iteration Time (utc),Post Time (utc),
@@ -243,14 +227,7 @@ field = "Iteration Time (home)"
 # field = "Author"
 # field = "Title"
 # field = "Total Karma"
-# field = " Postid "
-
-showAllDates = False  # show all the collected date data if True, if False, let matplotlib create the scale
-replaceSpecialChar = True
+# field = " Postid " # needs to have the spaces
 
 # doOneField(filename, field, replaceSpecialChar, showAllDates)
 doAllFields(filename, replaceSpecialChar, showAllDates)
-
-# load pickled figure (matplotlib)
-# pickedFigName = creeatePickledName("30min_popular_5minInt.csv", "Iteration Time (home)")
-# loadPickledFig(pickedFigName)
