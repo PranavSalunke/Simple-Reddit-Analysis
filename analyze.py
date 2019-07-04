@@ -21,6 +21,7 @@ def createPickledName(filename, field):
 def rmSpecialCharName(line):
     # line is supposed to be the list created when reading with the csv.reader as is done in cleanFile
     # returns a new list with the escape sequence removed
+    oldtitle = line[4]
     title = line[4]
     title = title.replace("\\N", "")  # because using the pattern "\\N\{[A-Z] +\}" was giving issues due to the escape N(\N)
     pattern = "\{[A-Z- 0-9]+\}"
@@ -28,7 +29,10 @@ def rmSpecialCharName(line):
     if not title.strip():  # empty after removing special chars
         title = "PLACEHOLDER TITLE FROM ANALYZE.PY: title empty after removing special characters."
     line[4] = title
-    return line
+
+    removed = oldtitle != title
+
+    return line, removed
 
 
 def cleanFile(filename, replaceSpecialChar):
@@ -48,10 +52,9 @@ def cleanFile(filename, replaceSpecialChar):
                 line = [x.strip() for x in line]
 
                 if replaceSpecialChar:
-                    oldtitle = line[4]
-                    line = rmSpecialCharName(line)
-                    if line[4] != oldtitle:
-                        print("removed special characters from %s" % (oldtitle))
+                    line, replaced = rmSpecialCharName(line)
+                    if replaced:
+                        print("removed special characters from post with id: %s" % (line[5]))
 
                 if "UnicodeEncodeError" in line:
                     print("remove UnicodeEncodeError: %s" % (line))
@@ -173,13 +176,13 @@ def doOneField(filename, field, replaceSpecialChar, showAllDates):
     doAnalyze = preAnalyze(filename)
 
     if not doAnalyze or replaceSpecialChar:
-        print("There are some format errors")
+        print("There are some format errors and/or replacing special chars")
         cleanFile(filename, replaceSpecialChar)
 
-    print("preAnalize again")
+    print("\npreAnalize again")
     doAnalyze = preAnalyze(filename)
     if not doAnalyze:
-        print("There are some format errors even after cleaning")
+        print("There are some format errors even after cleaning. Please fix manually")
         exit()
 
     analyze(filename, field, showAllDates, makePickledFigs=True)
@@ -192,13 +195,13 @@ def doAllFields(filename, replaceSpecialChar, showAllDates):
     doAnalyze = preAnalyze(filename)
 
     if not doAnalyze or replaceSpecialChar:
-        print("There are some format errors")
+        print("There are some format errors and/or replacing special chars")
         cleanFile(filename, replaceSpecialChar)
 
-    print("preAnalize again")
+    print("\npreAnalize again")
     doAnalyze = preAnalyze(filename)
     if not doAnalyze:
-        print("There are some format errors even after cleaning")
+        print("There are some format errors even after cleaning. Please fix manually")
         exit()
 
     for f in fields:
@@ -212,7 +215,7 @@ def doAllFields(filename, replaceSpecialChar, showAllDates):
         print()
 
 
-filename = "test_Interval_settings.csv"  # created by infoInterval.py or infoStream.py
+filename = "<filenamehere>.csv"  # created by infoInterval.py or infoStream.py
 showAllDates = False  # show all the collected date data if True, if False, let matplotlib create the scale
 replaceSpecialChar = True
 
