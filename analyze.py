@@ -91,8 +91,9 @@ def preAnalyze(filename):
     return doAnalyze
 
 
-def analyze(filename, field, showAllDates, plottingDate=True, makePickledFigs=False, saveHTML=False):
+def analyze(filename, field, showAllDates, makePickledFigs=False, saveHTML=False):
     print("starting analyze")
+    plottingDate = "time" in field.lower()
 
     print("loading data")
     data = pandas.read_csv(filename, encoding="ISO-8859-1")
@@ -133,7 +134,7 @@ def analyze(filename, field, showAllDates, plottingDate=True, makePickledFigs=Fa
                 print("pickling fig")
                 pickle.dump(fig, open(pickleName, "wb"))
         else:  # just load the pickledfig (also saves on process time)
-            print("loading pickedfig took: %s" % (str(datetime.datetime.now() - startBuild)))
+            print("loading pickledfig took: %s" % (str(datetime.datetime.now() - startBuild)))
             # load the pickled fig (assumes the data file is unchanged so the plots are unchanged)
             fig = pickle.load(open(pickleName, 'rb'))
             plt.show()
@@ -159,16 +160,57 @@ def analyze(filename, field, showAllDates, plottingDate=True, makePickledFigs=Fa
             time.sleep(1)  # let it load or the graph wont show
             try:
                 os.remove(htmlfilename)  # remove the html file
-                print("removed plot %s" % (htmlfilename))
+                print("deleted plot %s" % (htmlfilename))
             except PermissionError:  # still loading
                 time.sleep(0.5)  # wait another half second
                 os.remove(htmlfilename)  # try to remove the html file again
-                print("removed plot %s (on second try)" % (htmlfilename))
+                print("deleted plot %s (on second try)" % (htmlfilename))
 
 
-# Fields queried:
-#   Iteration Time (home),Iteration Time (utc),Post Time (utc),
-#   Subreddit,Title, Postid ,Author,Total Karma
+def doOneField(filename, field, replaceSpecialChar, showAllDates):
+    doAnalyze = preAnalyze(filename)
+    # doAnalyze = True  # when I know the format is fine
+
+    if not doAnalyze or replaceSpecialChar:
+        print("There are some format errors")
+        cleanFile(filename, replaceSpecialChar)
+
+    print("preAnalize again")
+    doAnalyze = preAnalyze(filename)
+    if not doAnalyze:
+        print("There are some format errors even after cleaning")
+        exit()
+
+    analyze(filename, field, showAllDates, makePickledFigs=True)
+
+
+def doAllFields(filename, replaceSpecialChar, showAllDates):
+    fields = ["Iteration Time (home)", "Iteration Time (utc)", "Post Time (utc)", "Subreddit", "Title", "Author", "Total Karma"]
+    # not plotting postid since that is unique anyway
+
+    doAnalyze = preAnalyze(filename)
+    # doAnalyze = True  # when I know the format is fine
+
+    if not doAnalyze or replaceSpecialChar:
+        print("There are some format errors")
+        cleanFile(filename, replaceSpecialChar)
+
+    print("preAnalize again")
+    doAnalyze = preAnalyze(filename)
+    if not doAnalyze:
+        print("There are some format errors even after cleaning")
+        exit()
+
+    for f in fields:
+        if "stream" in filename and "Iteration" in f:
+            print("=== " + f.upper() + " === ")
+            print("skipping")
+            continue  # skip the iteration time for streams since they are all one time
+
+        print(" === " + f.upper() + " === ")
+        analyze(filename, f, showAllDates, makePickledFigs=True)
+        print()
+
 
 # interested in how it looks for 3 subs: popular (all safe posts), askreddit (large sub), ucsc (smaller but somewhat active sub)
 
@@ -188,10 +230,11 @@ def analyze(filename, field, showAllDates, plottingDate=True, makePickledFigs=Fa
 # filename = "data/Popular_2day12hour_interval5min.csv"
 # filename = "data/popular_short_stream2.csv"
 
-filename = "test_interval_replace.csv"
+filename = "test_stream_replace.csv"
 
-fields = ["Iteration Time (home)", "Iteration Time (utc)", "Post Time (utc)", "Subreddit", "Title", "Author", "Total Karma"]
-# not plotting postid since that is unique anyway
+# Fields queried: (field can be any of these)
+#   Iteration Time (home),Iteration Time (utc),Post Time (utc),
+#   Subreddit,Title, Postid ,Author,Total Karma
 
 field = "Iteration Time (home)"
 # field = "Iteration Time (utc)"
@@ -201,42 +244,13 @@ field = "Iteration Time (home)"
 # field = "Title"
 # field = "Total Karma"
 # field = " Postid "
-plottingDate = "time" in field.lower()
+
 showAllDates = False  # show all the collected date data if True, if False, let matplotlib create the scale
 replaceSpecialChar = True
 
-print("for: %s\n" % (filename))
-
-
-doAnalyze = preAnalyze(filename)
-# doAnalyze = True  # when I know the format is fine
-
-if not doAnalyze or replaceSpecialChar:
-    print("There are some format errors")
-    cleanFile(filename, replaceSpecialChar)
-
-print("preAnalize again")
-doAnalyze = preAnalyze(filename)
-if not doAnalyze:
-    print("There are some format errors even after cleaning")
-    exit()
-
-print("\nshowAllDates: %s" % (showAllDates))
-print("field: %s" % (field))
-print("plotting date: %s\n" % (str(plottingDate)))
+# doOneField(filename, field, replaceSpecialChar, showAllDates)
+doAllFields(filename, replaceSpecialChar, showAllDates)
 
 # load pickled figure (matplotlib)
 # pickedFigName = creeatePickledName("30min_popular_5minInt.csv", "Iteration Time (home)")
 # loadPickledFig(pickedFigName)
-
-
-# analyze(filename, field, showAllDates, plottingDate)
-for f in fields:
-    if "stream" in filename and "Iteration" in f:
-        print("SKIPPING === " + f.upper() + " === ")
-        continue  # skip the iteration time for streams since they are all one time
-
-    print(" === " + f.upper() + " === ")
-    p = "time" in f.lower()
-    analyze(filename, f, showAllDates, p, makePickledFigs=True)
-    print()
