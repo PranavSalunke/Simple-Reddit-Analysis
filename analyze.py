@@ -215,7 +215,10 @@ def doAllFields(filename, replaceSpecialChar, showAllDates):
         print()
 
 
-filename = "<filenamehere>.csv"  # created by infoInterval.py or infoStream.py
+#### CUSTOMIZE THESE VARIABLES ####
+
+
+filename = "path/to/file.csv"  # created by infoInterval.py or infoStream.py
 showAllDates = False  # show all the collected date data if True, if False, let matplotlib create the scale
 replaceSpecialChar = True
 
@@ -231,6 +234,8 @@ field = "Iteration Time (home)"
 # field = "Title"
 # field = "Total Karma"
 # field = " Postid " # needs to have the spaces
+
+#### END CUSTOMIZE THESE VARIABLES ####
 
 # doOneField(filename, field, replaceSpecialChar, showAllDates)
 doAllFields(filename, replaceSpecialChar, showAllDates)

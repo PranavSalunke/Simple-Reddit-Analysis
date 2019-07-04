@@ -177,8 +177,10 @@ def infoStream(infoSettings):
         os.remove(outfileName)
 
 
+#### CUSTOMIZE THESE VARIABLES ####
+
 postToReddit = False
-utcToPstHoursDiff = 7
+utcToPstHoursDiff = 7  # different when day lights savings is on/off
 
 infoStreamSettings = {"totaldays": 0,
                       "hoursoffset": 0.1,
@@ -189,6 +191,9 @@ infoStreamSettings = {"totaldays": 0,
                       "writeToFile": True,    # either True/False/None
                       "printToConsole": True  # either True/False/None
                       }
+
+#### END CUSTOMIZE THESE VARIABLES ####
+
 
 if infoStreamSettings["printToConsole"]:
     for k in infoStreamSettings.keys():
