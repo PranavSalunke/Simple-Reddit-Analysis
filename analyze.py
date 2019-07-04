@@ -9,6 +9,7 @@ import matplotlib.dates as mdates
 import os
 import pickle
 from bokeh.plotting import figure, output_file, show, save
+import re
 
 
 def createPickledName(filename, field):
@@ -18,7 +19,21 @@ def createPickledName(filename, field):
     return pickleName
 
 
-def cleanFile(filename):
+def rmSpecialCharName(line):
+    # line is supposed to be the list created when reading with the csv.reader as is done in cleanFile
+    # returns a new list with the escape sequence removed
+    title = line[4]
+    title = title.replace("\\N", "")  # because using the pattern "\\N\{[A-Z] +\}" was giving issues due to the escape N(\N)
+    # pattern = "\\\\N\{[A-Z ]+\}"
+    pattern = "\{[A-Z- 0-9]+\}"
+    title = re.sub(pattern, "", title)
+    if not title.strip():  # empty after removing special chars
+        title = "PLACEHOLDER TITLE FROM ANALYZE.PY: title empty after removing special characters."
+    line[4] = title
+    return line
+
+
+def cleanFile(filename, replaceSpecialChar):
     print("cleaning UnicodeEncodeError")
     tempFilename = filename[:filename.find(".csv")] + "__temp.csv"
     os.rename(filename, tempFilename)
@@ -32,6 +47,10 @@ def cleanFile(filename):
             newwriter.writerow(header)
             for line in oldreader:
                 line = [x.strip() for x in line]
+
+                if replaceSpecialChar:
+                    line = rmSpecialCharName(line)
+
                 if "UnicodeEncodeError" in line:
                     print("remove UnicodeEncodeError: %s" % (line))
                     continue
@@ -115,7 +134,7 @@ def analyze(filename, field, showAllDates, plottingDate=True, makePickledFigs=Fa
                 pickle.dump(fig, open(pickleName, "wb"))
         else:  # just load the pickledfig (also saves on process time)
             print("loading pickedfig took: %s" % (str(datetime.datetime.now() - startBuild)))
-            # load the pickled fig
+            # load the pickled fig (assumes the data file is unchanged so the plots are unchanged)
             fig = pickle.load(open(pickleName, 'rb'))
             plt.show()
 
@@ -163,13 +182,13 @@ def analyze(filename, field, showAllDates, plottingDate=True, makePickledFigs=Fa
 # filename = "data/ucsc_2day12hour_interval5min.csv"
 # filename = "data/ucsc_2day12hour_stream.csv"
 
-filename = "data/askreddit_2day12hour_interval5min.csv"
+# filename = "data/askreddit_2day12hour_interval5min.csv"
 # filename = "data/askreddit_2day12hour_stream.csv"
 
 # filename = "data/Popular_2day12hour_interval5min.csv"
 # filename = "data/popular_short_stream2.csv"
 
-# filename = "test_interval.csv"
+filename = "test_interval_replace.csv"
 
 fields = ["Iteration Time (home)", "Iteration Time (utc)", "Post Time (utc)", "Subreddit", "Title", "Author", "Total Karma"]
 # not plotting postid since that is unique anyway
@@ -184,6 +203,7 @@ field = "Iteration Time (home)"
 # field = " Postid "
 plottingDate = "time" in field.lower()
 showAllDates = False  # show all the collected date data if True, if False, let matplotlib create the scale
+replaceSpecialChar = True
 
 print("for: %s\n" % (filename))
 
@@ -191,16 +211,14 @@ print("for: %s\n" % (filename))
 doAnalyze = preAnalyze(filename)
 # doAnalyze = True  # when I know the format is fine
 
-if not doAnalyze:
+if not doAnalyze or replaceSpecialChar:
     print("There are some format errors")
-    # exit()
-    print("MAKE SURE TO SAVE A FILE WITH THE ERROR TO SHOW")
-    cleanFile(filename)
+    cleanFile(filename, replaceSpecialChar)
 
 print("preAnalize again")
 doAnalyze = preAnalyze(filename)
 if not doAnalyze:
-    print("There are some format errors even after cleanUnicodeEncodeError")
+    print("There are some format errors even after cleaning")
     exit()
 
 print("\nshowAllDates: %s" % (showAllDates))
