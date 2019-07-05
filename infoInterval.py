@@ -94,7 +94,6 @@ def infoInterval(infoSettings):
                     date = post.created_utc
                     minago = str(int(round(abs(date - time.time()) / 60)))
                     postauth = str(post.author)
-                    postauth = str(post.author)
                     if not postauth == "None":  # since converted to string
                         authkarma = str(post.author.link_karma + post.author.comment_karma)
                     else:
@@ -241,7 +240,7 @@ utcToPstHoursDiff = 7  # different when day lights savings is on/off
 infoIntervalSettings = {"totaldays": 0,
                         "hoursoffset": 0.1,
                         "interval": 1,  # min
-                        "outfileName": "test_Interval_settings.csv",
+                        "outfileName": "data/infoIntervalDataOut.csv",
                         "subsOfInterest": ["askreddit", "aww", "showerthoughts"],  # list
                         # for the reset, put "None" to use the default
                         "initialNumPosts": None,  # how many posts to read initially

@@ -184,7 +184,7 @@ utcToPstHoursDiff = 7  # different when day lights savings is on/off
 
 infoStreamSettings = {"totaldays": 0,
                       "hoursoffset": 0.1,
-                      "outfileName": "test_Stream_settings.csv",
+                      "outfileName": "data/infoStreamDataOut.csv",
                       "subOfInterest": "popular",  # just one
                       # for the reset, put "None" to use the default
                       "replaceChars": True,  # either True/False/None

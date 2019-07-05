@@ -96,7 +96,7 @@ def preAnalyze(filename):
     return doAnalyze
 
 
-def analyze(filename, field, showAllDates, makePickledFigs=False, saveHTML=False):
+def analyze(filename, field, showAllDates, makePickledFigs, saveHTML):
     print("starting analyze")
     plottingDate = "time" in field.lower()
 
@@ -155,24 +155,29 @@ def analyze(filename, field, showAllDates, makePickledFigs=False, saveHTML=False
         plot.circle(ith.index, ith.values, size=8, color="blue", alpha=0.8)
         _, basefilename = os.path.split(filename)
         basefilename = basefilename[:basefilename.rfind(".")]  # ignore extention
-        htmlfilename = "analyze_%s_%s.html" % (basefilename, field)
+        htmlfilename = "analyze_%s__%s.html" % (basefilename, field)
         output_file(htmlfilename)
         print("  built plot")
         print("    Build took: %s" % (str(datetime.datetime.now() - startBuild)))
+        print("NOTE: could take a few moments to load. If it does not, set saveHTML to True so it is not automatically removed")
         show(plot)
 
+        time.sleep(1.5)  # let it load or the graph wont show
         if not saveHTML:  # just show it, dont save the html files
-            time.sleep(1)  # let it load or the graph wont show
             try:
                 os.remove(htmlfilename)  # remove the html file
-                print("deleted plot %s" % (htmlfilename))
+                print("deleted plot html file %s" % (htmlfilename))
             except PermissionError:  # still loading
-                time.sleep(0.5)  # wait another half second
-                os.remove(htmlfilename)  # try to remove the html file again
-                print("deleted plot %s (on second try)" % (htmlfilename))
+                print("could not remove %s. Trying again in 1 second" % (htmlfilename))
+                time.sleep(1)  # wait another second
+                try:
+                    os.remove(htmlfilename)  # try to remove the html file again
+                    print("deleted plot html file %s (on second try)" % (htmlfilename))
+                except:
+                    print("could not remove %s on second try; not attempting again" % (htmlfilename))
 
 
-def doOneField(filename, field, replaceSpecialChar, showAllDates):
+def doOneField(filename, field, replaceSpecialChar, showAllDates, makePickledFigs, saveHTML):
     doAnalyze = preAnalyze(filename)
 
     if not doAnalyze or replaceSpecialChar:
@@ -185,10 +190,10 @@ def doOneField(filename, field, replaceSpecialChar, showAllDates):
         print("There are some format errors even after cleaning. Please fix manually")
         exit()
 
-    analyze(filename, field, showAllDates, makePickledFigs=True)
+    analyze(filename, field, showAllDates, makePickledFigs, saveHTML)
 
 
-def doAllFields(filename, replaceSpecialChar, showAllDates):
+def doAllFields(filename, replaceSpecialChar, showAllDates, makePickledFigs, saveHTML):
     fields = ["Iteration Time (home)", "Iteration Time (utc)", "Post Time (utc)", "Subreddit", "Title", "Author", "Total Karma"]
     # not plotting postid since that is unique anyway
 
@@ -205,22 +210,23 @@ def doAllFields(filename, replaceSpecialChar, showAllDates):
         exit()
 
     for f in fields:
-        if "stream" in filename and "Iteration" in f:
+        if "stream" in filename.lower() and "iteration" in f.lower():
             print("=== " + f.upper() + " === ")
-            print("skipping")
+            print("skipping since they are all one time")
             continue  # skip the iteration time for streams since they are all one time
 
         print(" === " + f.upper() + " === ")
-        analyze(filename, f, showAllDates, makePickledFigs=True)
+        analyze(filename, f, showAllDates, makePickledFigs, saveHTML)
         print()
 
 
 #### CUSTOMIZE THESE VARIABLES ####
 
-
-filename = "path/to/file.csv"  # created by infoInterval.py or infoStream.py
+filename = "data/file.csv"  # created by infoInterval.py or infoStream.py
 showAllDates = False  # show all the collected date data if True, if False, let matplotlib create the scale
 replaceSpecialChar = True
+makePickledFigs = True
+saveHTML = False
 
 # Fields queried: (field can be any of these)
 #   Iteration Time (home),Iteration Time (utc),Post Time (utc),
@@ -237,5 +243,5 @@ field = "Iteration Time (home)"
 
 #### END CUSTOMIZE THESE VARIABLES ####
 
-# doOneField(filename, field, replaceSpecialChar, showAllDates)
-doAllFields(filename, replaceSpecialChar, showAllDates)
+# doOneField(filename, field, replaceSpecialChar, showAllDates, makePickledFigs, saveHTML)
+doAllFields(filename, replaceSpecialChar, showAllDates, makePickledFigs, saveHTML)
