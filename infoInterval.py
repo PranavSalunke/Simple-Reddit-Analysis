@@ -94,9 +94,9 @@ def infoInterval(infoSettings):
                     date = post.created_utc
                     minago = str(int(round(abs(date - time.time()) / 60)))
                     postauth = str(post.author)
-                    if not postauth == "None":  # since converted to string
+                    try:  # can be None
                         authkarma = str(post.author.link_karma + post.author.comment_karma)
-                    else:
+                    except:
                         authkarma = "0"
 
                     t = "placeholder title for %s" % (str(postid))
@@ -177,10 +177,10 @@ def infoInterval(infoSettings):
                             seenids.append(postid)
                             title = infoUtil.cleanTitle(post.title, replaceChars)
 
-                            postauth == str(post.author)
-                            if not postauth == "None":  # since converted to string
+                            postauth = str(post.author)
+                            try:  # can be noen
                                 authkarma = str(post.author.link_karma + post.author.comment_karma)
-                            else:
+                            except:
                                 authkarma = "0"
 
                             date = post.created_utc
